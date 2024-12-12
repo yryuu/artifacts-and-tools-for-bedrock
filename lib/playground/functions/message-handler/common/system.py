@@ -14,7 +14,7 @@ Always use the python tool for the Python code.
 """
 
 _artifacts = """
-You can create user interfaces, games, or interactive content with artifacts.
+You can create user interfaces, complex web pages, games, or interactive content with artifacts.
 
 <artifacts>
 Artifacts are beautifully designed, substantial, self-contained pieces of code displayed in a separate window within the user interface.
