@@ -1,11 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import {
-  ChatMessageContentArtifact,
-  SandboxEvent,
-  SandboxEventType,
-  SandboxExpandEvent,
-  SandboxSourceCodeResponseEvent,
-} from "../../types";
+import { ArtifactType, ChatMessageContentArtifact } from "../../types";
 import {
   Container,
   Header,
@@ -14,25 +8,25 @@ import {
   Button,
   CopyToClipboard,
 } from "@cloudscape-design/components";
+import { ArtifactViewer } from "@centralmind/artifacts";
 import SourceView from "./source-view";
 import styles from "../../styles/playground.module.scss";
 
-export interface SandboxProps {
+export interface ArtifactsUIProps {
   artifact: ChatMessageContentArtifact;
   versions: number[];
   setArtifactIndex: (index: number) => void;
   onClose: () => void;
 }
 
-export abstract class SandboxScrollState {
+export abstract class ArtifactsUIScrollState {
   static userHasScrolled = false;
   static skipNextScrollEvent = false;
   static skipNextHistoryUpdate = false;
 }
 
-export default function Sandbox(props: SandboxProps) {
+export default function ArtifactsUI(props: ArtifactsUIProps) {
   const artifact = props.artifact;
-  const iframeRef = useRef<HTMLIFrameElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [expanded, setExpanded] = useState(false);
   const [ready, setReady] = useState(artifact.ready);
@@ -40,41 +34,17 @@ export default function Sandbox(props: SandboxProps) {
   const [selectedId, setSelectedId] = useState(
     artifact.ready ? "view" : "source",
   );
-
+  const [files, setFiles] = useState<Record<string, string>>(
+    generateFiles(artifact),
+  );
   const currentVersionIndex = props.versions.indexOf(artifact.index);
 
   useEffect(() => {
-    const handleMessage = (event: MessageEvent<SandboxEvent>) => {
-      if (event.data.type === SandboxEventType.SOURCE_CODE_REQUEST) {
-        if (artifact.ready) {
-          const event: SandboxSourceCodeResponseEvent = {
-            type: SandboxEventType.SOURCE_CODE_RESPONSE,
-            artifact,
-          };
-
-          iframeRef.current?.contentWindow?.postMessage(event, "*");
-        }
-      }
-    };
-
-    window.addEventListener("message", handleMessage);
-
-    return () => {
-      window.removeEventListener("message", handleMessage);
-    };
-  }, [artifact]);
-
-  useEffect(() => {
     if (artifact.ready && !ready) {
-      const event: SandboxSourceCodeResponseEvent = {
-        type: SandboxEventType.SOURCE_CODE_RESPONSE,
-        artifact,
-      };
-
-      iframeRef.current?.contentWindow?.postMessage(event, "*");
-
       setReady(true);
       setSelectedId("view");
+
+      setFiles(generateFiles(artifact));
     }
   }, [artifact, ready]);
 
@@ -96,8 +66,8 @@ export default function Sandbox(props: SandboxProps) {
 
     const onScroll = (event: Event) => {
       const target = event.target as HTMLDivElement;
-      if (SandboxScrollState.skipNextScrollEvent) {
-        SandboxScrollState.skipNextScrollEvent = false;
+      if (ArtifactsUIScrollState.skipNextScrollEvent) {
+        ArtifactsUIScrollState.skipNextScrollEvent = false;
         return;
       }
 
@@ -107,9 +77,9 @@ export default function Sandbox(props: SandboxProps) {
         ) <= 10;
 
       if (!isScrollToTheEnd) {
-        SandboxScrollState.userHasScrolled = true;
+        ArtifactsUIScrollState.userHasScrolled = true;
       } else {
-        SandboxScrollState.userHasScrolled = false;
+        ArtifactsUIScrollState.userHasScrolled = false;
       }
     };
 
@@ -132,13 +102,6 @@ export default function Sandbox(props: SandboxProps) {
   const onExpandToggle = () => {
     const newValue = !expanded;
     setExpanded(newValue);
-
-    const event: SandboxExpandEvent = {
-      type: SandboxEventType.EXPAND,
-      expanded: newValue,
-    };
-
-    iframeRef.current?.contentWindow?.postMessage(event, "*");
   };
 
   const actualSelectedId = ready ? selectedId : "source";
@@ -254,15 +217,7 @@ export default function Sandbox(props: SandboxProps) {
             display: actualSelectedId === "view" ? "block" : "none",
           }}
         >
-          <iframe
-            src="/sandbox.html"
-            title="Artifacts"
-            tabIndex={1}
-            allowFullScreen={false}
-            sandbox="allow-scripts allow-modals allow-popups allow-same-origin"
-            ref={iframeRef}
-            key={currentKey}
-          ></iframe>
+          {ready && <ArtifactViewer files={files} key={currentKey} />}
         </div>
         <div
           style={{
@@ -274,4 +229,26 @@ export default function Sandbox(props: SandboxProps) {
       </Container>
     </div>
   );
+}
+
+function generateFiles(
+  artifact: ChatMessageContentArtifact,
+): Record<string, string> {
+  if (!artifact.ready) return {};
+
+  if (artifact.type === ArtifactType.HTML) {
+    return {
+      "/index.html": artifact.text,
+    };
+  } else if (artifact.type === ArtifactType.REACT) {
+    return {
+      "/app.tsx": artifact.text,
+    };
+  } else if (artifact.type === ArtifactType.VUE) {
+    return {
+      "/app.vue": artifact.text,
+    };
+  }
+
+  return {};
 }

@@ -134,7 +134,7 @@ def converse_make_request_stream(
         modelId=BEDROCK_MODEL,
         system=system,
         messages=converse_messages,
-        inferenceConfig={"maxTokens": 4096, "temperature": 0.5},
+        inferenceConfig={"maxTokens": 5120, "temperature": 0.5},
         **additional_params,
     )
 

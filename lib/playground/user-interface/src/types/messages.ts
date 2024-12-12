@@ -1,5 +1,5 @@
 import { ToolStatus } from "./payload";
-import { ArtifactType } from "./sandbox";
+import { ArtifactType } from "./artifacts";
 
 export interface ChatMessage {
   role: ChatMessageRole;

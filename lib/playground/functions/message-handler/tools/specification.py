@@ -20,6 +20,8 @@ code_interpreter = {
 - Simple, informational, or short content, such as brief code snippets, mathematical equations, or small examples.
 - Primarily explanatory, instructional, or illustrative content, such as examples provided to clarify a concept
 - Conversational or explanatory content that doesn't represent executing code
+- Never use tools for creating artifacts. Use the x-artifact tag for that purpose.
+- Never use tools for React, Typescript, or HTML code. Use the x-artifact tag for that purpose.
 """,
         "inputSchema": {
             "json": {

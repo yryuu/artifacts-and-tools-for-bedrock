@@ -1,19 +1,17 @@
 import { ChatMessageContentArtifact } from "../../types";
-import Sandbox from "../../components/sandbox/sandbox";
 import { useEffect, useState } from "react";
+import ArtifactsUI from "./artifacts-ui";
 
-export interface SandboxProps {
+export interface ArtifactsWrapperProps {
   artifacts: ChatMessageContentArtifact[];
   artifactIndex: number;
   setArtifactIndex: (index: number) => void;
 }
 
-export default function SandboxWrapper(props: SandboxProps) {
+export default function ArtifactsWrapper(props: ArtifactsWrapperProps) {
   const [numArtifacts, setNumArtifacts] = useState(props.artifacts.length);
 
   useEffect(() => {
-    console.log;
-
     if (props.artifactIndex < 0 && numArtifacts < props.artifacts.length) {
       props.setArtifactIndex(props.artifacts.length - 1);
     }
@@ -30,7 +28,7 @@ export default function SandboxWrapper(props: SandboxProps) {
     .map((a) => a.index);
 
   return (
-    <Sandbox
+    <ArtifactsUI
       key={props.artifacts[props.artifactIndex].index}
       artifact={currentArtifact}
       versions={versions}

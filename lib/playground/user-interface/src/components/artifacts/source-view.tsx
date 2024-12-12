@@ -1,7 +1,7 @@
 import { CodeView } from "@cloudscape-design/code-view";
 import { ChatMessageContentArtifact } from "../../types";
 import { useLayoutEffect, useRef } from "react";
-import { SandboxScrollState } from "./sandbox";
+import { ArtifactsUIScrollState } from "./artifacts-ui";
 import typescriptHighlight from "@cloudscape-design/code-view/highlight/typescript";
 import htmlHightlight from "@cloudscape-design/code-view/highlight/html";
 
@@ -15,13 +15,13 @@ export default function SourceView({
   const endRef = useRef<HTMLDivElement>(null);
 
   useLayoutEffect(() => {
-    if (SandboxScrollState.skipNextHistoryUpdate) {
-      SandboxScrollState.skipNextHistoryUpdate = false;
+    if (ArtifactsUIScrollState.skipNextHistoryUpdate) {
+      ArtifactsUIScrollState.skipNextHistoryUpdate = false;
       return;
     }
 
-    if (!SandboxScrollState.userHasScrolled && sourceCode.length > 0) {
-      SandboxScrollState.skipNextScrollEvent = true;
+    if (!ArtifactsUIScrollState.userHasScrolled && sourceCode.length > 0) {
+      ArtifactsUIScrollState.skipNextScrollEvent = true;
       endRef.current?.scrollIntoView();
     }
   }, [sourceCode]);

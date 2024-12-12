@@ -19,7 +19,7 @@ import { fetchAuthSession } from "aws-amplify/auth";
 import { normalizeMessages } from "../../common/helpers/message-helper";
 import useWebSocket from "react-use-websocket";
 import BaseAppLayout from "../../components/base-app-layout";
-import SandboxWrapper from "../../components/sandbox/sandbox-wrapper";
+import ArtifactsWrapper from "../../components/artifacts/artifacts-wrapper";
 import styles from "../../styles/playground.module.scss";
 
 const frames: Record<string, InboundFrame[]> = {};
@@ -279,7 +279,7 @@ export default function Playground() {
             setArtifactIndex={setArtifactIndex}
           />
           {!loading && (
-            <SandboxWrapper
+            <ArtifactsWrapper
               artifacts={artifacts}
               artifactIndex={artifactIndex}
               setArtifactIndex={setArtifactIndex}
