@@ -1,10 +1,11 @@
 # Artifacts and Tools for Bedrock
 
-Try **Artifacts** and **Code Interpreter Tool** with Amazon Bedrock. 
+Try **Artifacts** and **Code Interpreter Tool** with Amazon Bedrock.
 
-##  [>> EXAMPLES <<](EXAMPLES.md) 
+## [>> EXAMPLES <<](EXAMPLES.md)
 
 ## Table of contents
+
 - [Overview](#overview)
 - [Configuration](#configuration)
 - [Deployment](#deployment)
@@ -24,17 +25,23 @@ This sample offers an innovative chat-based user interface with support for tool
 | Web Search       | Using the Brave Search API to retrieve data | Available |
 
 ### Sample queries
+
 ```
 Draw a graph of y = log(2x^2)e^x + 1
 ```
+
 ![sample](./assets/screen01.png "Screenshot")
+
 ```
 Create a beautifully designed tic-tac-toe game.
 ```
+
 ![sample](./assets/screen02.png "Screenshot")
+
 ```
 Create a beautifully designed user registration form.
 ```
+
 ![sample](./assets/screen03.png "Screenshot")
 
 ## Configuration
@@ -60,10 +67,33 @@ Before deploying the solution, make sure the configuration in ``bin/artifacts-an
 }
 ```
 
+### Cross-Region Inference Considerations
+
+When deploying to regions that require cross-region inference for the selected model (marked with * in the [AWS documentation](https://docs.aws.amazon.com/bedrock/latest/userguide/inference-profiles-support.html)), you must use an inference profile ID instead of the model ID.
+
+#### For the most current information:
+
+1. Check the [Supported Regions and models for inference profiles](https://docs.aws.amazon.com/bedrock/latest/userguide/inference-profiles-support.html) in the AWS documentation
+1. Regions requiring cross-region inference are typically marked with an asterisk (*)
+Example configuration for regions requiring cross-region inference:
+
+```ts
+// Configuration for regions requiring cross-region inference
+{
+  bedrockRegion: "us-west-2", // A region requiring cross-region inference
+  bedrockModel: "us.amazon.nova-pro-v1:0", // Use inference profile ID with region prefix
+  // ...other settings remain the same
+}
+```
+
+If you encounter the error Invocation of model ID with on-demand throughput isn't supported, you likely need to switch to using an inference profile ID.
+
 ## Deployment
 
 ### Environment setup
+
 #### Local deployment
+
 First, verify that your environment satisfies the following prerequisites:
 
 You have:
@@ -73,9 +103,11 @@ You have:
 3. Both console and programmatic access
 4. [NodeJS 20+](https://nodejs.org/en/download/) installed
     - If you are using [`nvm`](https://github.com/nvm-sh/nvm) you can run the following before proceeding
+
     - ```
       nvm install 20 && nvm use 20
       ```
+
 5. [AWS CLI](https://aws.amazon.com/cli/) installed and configured to use with your AWS account
 6. [Typescript 3.8+](https://www.typescriptlang.org/download) installed
 7. [AWS CDK CLI](https://docs.aws.amazon.com/cdk/latest/guide/getting_started.html) installed
@@ -83,11 +115,14 @@ You have:
    - N.B. [`buildx`](https://github.com/docker/buildx) is also required. For Windows and macOS `buildx` [is included](https://github.com/docker/buildx#windows-and-macos) in [Docker Desktop](https://docs.docker.com/desktop/)
 
 #### Deploy with Github Codespaces
+
 If you'd like to use [GitHub Codespaces](https://github.com/features/codespaces) to deploy the solution, you will need the following before proceeding:
+
 1. An [AWS account](https://aws.amazon.com/premiumsupport/knowledge-center/create-and-activate-aws-account/)
 2. An [IAM User](https://console.aws.amazon.com/iamv2/home?#/users/create) with:
-  - `AdministratorAccess` policy granted to your user (for production, we recommend restricting access as needed)
-  - Take note of `Access key` and `Secret access key`.
+
+- `AdministratorAccess` policy granted to your user (for production, we recommend restricting access as needed)
+- Take note of `Access key` and `Secret access key`.
 
 To get started, click on the button below.
 
@@ -111,10 +146,13 @@ You are all set for deployment; you can now jump to [deployment](#deployment).
 ### Deployment
 
 **Step 1.** Clone the repository
+
 ```bash
 git clone https://github.com/aws-samples/artifacts-and-tools-for-bedrock
 ```
+
 **Step 2.** Move into the cloned repository
+
 ```bash
 cd artifacts-and-tools-for-bedrock
 ```
@@ -139,6 +177,7 @@ You can now deploy by running:
 ```bash
 npx cdk deploy
 ```
+
 You can view the progress of your CDK deployment in the [CloudFormation console](https://console.aws.amazon.com/cloudformation/home) in the selected region.
 
 **Step 5.**  Once deployed, take note of the `UserInterfaceDomainName` that use can use to access the app.
@@ -161,7 +200,7 @@ ArtifactsAndToolsStack.CognitoUserPool = https://xxxxx.console.aws.amazon.com/co
 
 ### Deployment Errors
 
-#### Could not unzip uploaded file...
+#### Could not unzip uploaded file
 
 If you encounter the error "*Could not unzip uploaded file. Please check your file, then try to upload again. (Service: Lambda, Status Code: 400*" during deployment, a possible reason could be that you ran cdk bootstrap with an older CDK version. Please delete the ``CDKToolkit`` stack and bootstrap again.
 
@@ -175,14 +214,16 @@ The Web Search Tool uses the [Brave Search API](https://brave.com/search/api/). 
 }
 ```
 
-
 ## Local Development
+
 ### Get aws-exports.json from the backend
+
 Before you can connect to the backend from the local machine, you should deploy the backend part and then download the ``aws-exports.json`` file with the configuration parameters from the website.
 
 ```
 https://dxxxxxxxxxxxxx.cloudfront.net/aws-exports.json
 ```
+
 It looks like this:
 
 ```json
@@ -207,19 +248,24 @@ It looks like this:
 
 ```
 
-Save the ``aws-exports.json`` file to the `lib/playground/user-interface/public` folder. 
+Save the ``aws-exports.json`` file to the `lib/playground/user-interface/public` folder.
 
 ### Run the App with backend access
 
 1. Move into the user interface folder
+
 ```bash
 cd user-interface
 ```
+
 2. Install the project dependencies by running:
+
 ```bash
 npm install
 ```
+
 3. To start the development server, run:
+
 ```bash
 npm run dev
 ```
@@ -245,7 +291,9 @@ To view the service quotas for all AWS services in the documentation without swi
 ## Clean up
 
 You can remove the stacks and all the associated resources created in your AWS account by running the following command:
+
 ```bash
 npx cdk destroy
 ```
+
 After deleting your stack, do not forget to delete the logs and content uploaded to the account.

@@ -1,6 +1,8 @@
 import os
 import json
 import boto3
+import random
+from time import sleep
 from common.sender import MessageSender
 from common.system import system_messages
 from tools import ToolProvider, ConverseToolExecutor, converse_tools
@@ -10,6 +12,9 @@ from common.files import (
 )
 from common.session import load_session, save_session, create_dynamodb_session
 
+MAX_RETRY_ATTEMPTS = 5
+INITIAL_RETRY_DELAY = 1
+MAX_RETRY_DELAY = 32
 
 AWS_REGION = os.environ["AWS_REGION"]
 BEDROCK_REGION = os.environ.get("BEDROCK_REGION")
@@ -108,7 +113,6 @@ def handle_message(logger, connection_id, user_id, body):
             raise ValueError(f"Unknown event type: {event_type}")
     except Exception as e:
         logger.error(f"Error processing message: {e}")
-        sender.send_error(str(e))
 
     return {"statusCode": 200, "body": json.dumps({"ok": True})}
 
@@ -130,35 +134,65 @@ def converse_make_request_stream(
     if tool_config:
         additional_params["toolConfig"] = {"tools": tool_config}
 
-    streaming_response = bedrock_client.converse_stream(
-        modelId=BEDROCK_MODEL,
-        system=system,
-        messages=converse_messages,
-        inferenceConfig={"maxTokens": 5120, "temperature": 0.5},
-        **additional_params,
-    )
+    for attempt in range(MAX_RETRY_ATTEMPTS):
+        try:
+            streaming_response = bedrock_client.converse_stream(
+                modelId=BEDROCK_MODEL,
+                system=system,
+                messages=converse_messages,
+                inferenceConfig={"maxTokens": 5120, "temperature": 0.5},
+                **additional_params,
+            )
 
-    executor = ConverseToolExecutor(user_id, session_id, provider)
-    for chunk in streaming_response["stream"]:
-        if text := executor.process_chunk(chunk):
-            sender.send_text(text)
+            executor = ConverseToolExecutor(user_id, session_id, provider)
+            for chunk in streaming_response["stream"]:
+                if text := executor.process_chunk(chunk):
+                    sender.send_text(text)
 
-    assistant_messages = executor.get_assistant_messages()
-    converse_messages.extend(assistant_messages)
+            assistant_messages = executor.get_assistant_messages()
+            converse_messages.extend(assistant_messages)
 
-    if executor.execution_requested():
-        tool_use_extra = sender.send_tool_running_messages(executor)
-        tool_extra.update(tool_use_extra)
+            if executor.execution_requested():
+                tool_use_extra = sender.send_tool_running_messages(executor)
+                tool_extra.update(tool_use_extra)
 
-        executor.execute(s3_client, file_names)
-        user_messages = executor.get_user_messages()
-        converse_messages.extend(user_messages)
+                executor.execute(s3_client, file_names)
+                user_messages = executor.get_user_messages()
+                converse_messages.extend(user_messages)
 
-        tool_results_extra = sender.send_tool_finished_messages(executor)
+                tool_results_extra = sender.send_tool_finished_messages(executor)
 
-        for tool_use_id, extra in tool_results_extra.items():
-            tool_extra.get(tool_use_id, {}).update(extra)
+                for tool_use_id, extra in tool_results_extra.items():
+                    tool_extra.get(tool_use_id, {}).update(extra)
 
-        return False
+                return False
 
-    return True
+            return True
+            
+        except Exception as e:
+            error_message = str(e).lower()
+            
+            if "validationexception" in error_message and "input is too long" in error_message:
+                error_message = (
+                    "The input is too long for the requested model. \n\n"
+                )
+                sender.send_text(error_message)
+                raise
+            
+            if attempt < MAX_RETRY_ATTEMPTS - 1:
+                delay = min(INITIAL_RETRY_DELAY * (2**attempt), MAX_RETRY_DELAY)
+                jitter = random.uniform(0, 1)
+                total_delay = delay + jitter
+                
+                retry_message = (
+                    f"Retrying... (Attempt {attempt + 1}/{MAX_RETRY_ATTEMPTS})\n\n"
+                )
+                sender.send_text(retry_message)
+                
+                sleep(total_delay)
+            else:
+                error_message = (
+                    "Please try again later.\n\n"
+                )
+                sender.send_text(error_message)
+                raise
