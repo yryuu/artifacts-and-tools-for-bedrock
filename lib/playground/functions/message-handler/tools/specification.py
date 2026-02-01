@@ -90,7 +90,7 @@ get_skill = {
                 "properties": {
                     "skill_name": {
                         "type": "string",
-                        "enum": ["xlsx"],
+                        "enum": ["xlsx", "pandas"],
                         "description": "The name of the skill to retrieve.",
                     },
                 },

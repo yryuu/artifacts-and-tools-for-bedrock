@@ -73,6 +73,7 @@ For data analysis, visualization, and basic operations, use **pandas** which pro
 
 ```python
 import pandas as pd
+import japanize_matplotlib  # Required for Japanese characters in plots
 
 # Read Excel
 df = pd.read_excel('file.xlsx')  # Default: first sheet
