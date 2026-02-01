@@ -29,7 +29,7 @@ code_interpreter = {
                 "properties": {
                     "code": {
                         "type": "string",
-                        "description": "Code to run",
+                        "description": "code and comment onlyCode to run",
                     },
                     "output_files": {
                         "type": "array",
@@ -77,6 +77,28 @@ class ConverseSpecification:
     def __init__(self):
         self.code_interpreter = code_interpreter
         self.web_search = web_search
+        self.get_skill = get_skill
+
+
+get_skill = {
+    "toolSpec": {
+        "name": "get_skill",
+        "description": "Retrieves specialized instructions and code patterns (a 'Skill') for specific tasks. Use this tool when you need expert knowledge on a topic, such as handling Excel files properly.",
+        "inputSchema": {
+            "json": {
+                "type": "object",
+                "properties": {
+                    "skill_name": {
+                        "type": "string",
+                        "enum": ["xlsx"],
+                        "description": "The name of the skill to retrieve.",
+                    },
+                },
+                "required": ["skill_name"],
+            }
+        },
+    }
+}
 
 
 converse_tools = ConverseSpecification()

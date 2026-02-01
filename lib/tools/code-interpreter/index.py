@@ -22,14 +22,24 @@ def handler(event, context):
     if code is None:
         return {"status": "error", "content": {"text": "No code provided."}}
 
-    base_name = str(uuid.uuid4())
+    session_id = event.get("session_id")
+    if session_id:
+        base_name = session_id
+        print(f"Using session_id for base_path: {base_name}")
+    else:
+        base_name = str(uuid.uuid4())
+        print(f"No session_id provided, using random UUID: {base_name}")
+
     base_path = f"/tmp/{base_name}"
     home_path = os.path.join(base_path, "home")
     notebooks_path = os.path.join(base_path, "notebooks")
     matplotlib_path = os.path.join(home_path, ".matplotlib")
-    code_path = os.path.join(notebooks_path, f"{base_name}.ipynb")
-    html_output_path = os.path.join(notebooks_path, f"{base_name}.html")
-    asciidoc_output_path = os.path.join(notebooks_path, f"{base_name}.asciidoc")
+    
+    # Unique filename for each execution to avoid overwriting if using same session dir
+    execution_id = str(uuid.uuid4())
+    code_path = os.path.join(notebooks_path, f"{execution_id}.ipynb")
+    html_output_path = os.path.join(notebooks_path, f"{execution_id}.html")
+    asciidoc_output_path = os.path.join(notebooks_path, f"{execution_id}.asciidoc")
 
     os.makedirs(base_path, exist_ok=True)
     os.makedirs(home_path, exist_ok=True)
@@ -138,7 +148,12 @@ def handler(event, context):
 
         return {"status": "error", "content": {"text": error_text}}
     finally:
-        shutil.rmtree(base_path)
+        # Do not clean up if session_id is provided (to support persistence in warm start)
+        if not session_id:
+            print(f"Cleaning up {base_path}")
+            shutil.rmtree(base_path)
+        else:
+            print(f"Persisting {base_path} for session {session_id}")
 
 
 def download_files(files_path, input_files):

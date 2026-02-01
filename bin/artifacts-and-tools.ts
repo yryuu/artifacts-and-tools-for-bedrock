@@ -6,7 +6,7 @@ import { ArtifactsAndToolsStack } from "../lib/stack";
 
 const config: StackConfig = {
   bedrockRegion: "us-east-1",
-  bedrockModel: "amazon.nova-pro-v1:0",
+  bedrockModel: "us.anthropic.claude-sonnet-4-5-20250929-v1:0",
   playground: {
     enabled: true,
   },

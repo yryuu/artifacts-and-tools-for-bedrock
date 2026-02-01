@@ -96,14 +96,16 @@ class ConverseToolExecutor:
     def execution_requested(self):
         return self.stop_on_tool_use
 
-    def execute(self, s3_client, file_names: list = []):
+    def execute(self, s3_client, file_list: list = []):
         tool_use = self.get_formatted_tool_use()
 
         input_files = []
-        for file_name in file_names:
+        for item in file_list:
             file = generate_presigned_get(
-                s3_client, self.user_id, self.session_id, file_name
+                s3_client, self.user_id, self.session_id, item["original"]
             )
+            # Use the sanitized name for the tool's filesystem
+            file["file_name"] = item["sanitized"]
 
             input_files.append(file)
 
@@ -137,6 +139,7 @@ class ConverseToolExecutor:
                     "input": input,
                     "input_files": input_files,
                     "output_files": output_files,
+                    "session_id": self.session_id,
                 },
             )
 
