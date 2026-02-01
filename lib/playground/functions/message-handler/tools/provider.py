@@ -40,7 +40,7 @@ class ToolProvider:
                         content_text += f.read()
                         content_text += "\n\n"
                 else:
-                     return {"status": "error", "content": [{"text": f"Skill '{skill_name}' instructions not found."}]}
+                     return {"status": "error", "content": {"text": f"Skill '{skill_name}' instructions not found."}}
 
                 if os.path.exists(recalc_file):
                     with open(recalc_file, "r") as f:
@@ -51,12 +51,12 @@ class ToolProvider:
 
                 return {
                     "status": "success",
-                    "content": [{"text": content_text}],
+                    "content": {"text": content_text},
                 }
             except Exception as e:
                 return {
                     "status": "error",
-                    "content": [{"text": f"Error loading skill: {str(e)}"}],
+                    "content": {"text": f"Error loading skill: {str(e)}"},
                 }
 
         tool_arn = self.get_tool_arn(tool_name)

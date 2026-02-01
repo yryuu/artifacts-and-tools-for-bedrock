@@ -510,7 +510,7 @@ export class Playground extends Construct {
         architecture: lambdaArchitecture,
         layers: [powerToolsLayer],
         timeout: cdk.Duration.minutes(15),
-        memorySize: 256,
+        memorySize: 1024,
         environment: {
           WEBSOCKET_API_ENDPOINT: stage.callbackUrl,
           BEDROCK_REGION: bedrockRegion,
