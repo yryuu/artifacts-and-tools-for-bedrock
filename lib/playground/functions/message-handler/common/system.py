@@ -4,13 +4,16 @@ from common.files import generate_presigned_get
 _assistant = """
 Use tools if they can help answer a question.
 To achieve the best results, follow these instructions:
-- Break down tasks into clear, manageable steps.
-- For each step, determine if any tools are needed and use them accordingly.
-- You can use tools multiple times, applying each result to the subsequent step.
-- Ensure each step is completed before moving to the next.
+- **Break down tasks into clear, manageable steps.**
+- **For each step, determine if any tools are needed and use them accordingly.**
+- **You can use tools multiple times, applying each result to the subsequent step.**
+- **Ensure each step is completed before moving to the next.**
+- **Specialized Knowledge (Skills)**: When performing specialized tasks (e.g., handling Excel files, complex data analysis, PDF processing), always call the `get_skill` tool first to retrieve expert instructions and best practices. 
+- **Data Preview**: When a file (CSV or Excel) is provided, you will be given a preview of the data. Use this preview to understand the structure before processing.
+- **Filename Handling**: For files with non-ASCII or special characters, always use the sanitized filename provided in the prompt (e.g., `財務データ_2023.xlsx` instead of `財務データ 2023.xlsx`). Spaces and special symbols are replaced with `_`, but Japanese characters are preserved.
 
 Never display images from the tmp folder. Assume that the code has already displayed all images, graphs, and plots.
-Always use the python tool for the Python code.
+Always use the python tool for the Python code. Output ONLY valid Python code to the tool. Do not include step titles (e.g., "~// Step 1: ...") or any natural language descriptions inside the code block.
 """
 
 _artifacts = """
@@ -89,24 +92,28 @@ Before creating an artifact, rewrite the user's query to include detailed functi
 
 
 def system_messages(
-    artifacts_enabled: bool, s3_client, user_id, session_id, file_names: list[str]
+    artifacts_enabled: bool, s3_client, user_id, session_id, file_list: list[dict]
 ):
     texts = [_assistant]
 
     if artifacts_enabled:
         texts.append(_artifacts)
 
-    if file_names:
+    if file_list:
+        sanitized_names = [f["sanitized"] for f in file_list]
         texts.append(
-            f"The following files are available for the tools: {', '.join(file_names)}"
+            f"The following files are available for the tools: {', '.join(sanitized_names)}"
         )
 
-        for file_name in file_names:
+        for f in file_list:
+            file_name = f["sanitized"]
+            original_name = f["original"]
             is_csv = file_name.lower().endswith(".csv")
-            is_xlsx = file_name.lower().endswith(".xlsx")
+            # Support .xlsx, .xls, .xlsm, .xlsb, and handle potential typos like .xlsl
+            is_xlsx = any(file_name.lower().endswith(ext) for ext in [".xlsx", ".xls", ".xlsm", ".xlsb", ".xlsl"])
 
             if is_csv or is_xlsx:
-                file = generate_presigned_get(s3_client, user_id, session_id, file_name)
+                file = generate_presigned_get(s3_client, user_id, session_id, original_name)
                 file_url = file["url"]
 
                 if is_csv:
@@ -117,15 +124,17 @@ def system_messages(
                 dtypes_str = "\n".join(
                     [f"{col}: {dtype}" for col, dtype in df.dtypes.items()]
                 )
+                head_str = df.head(5).to_string()
 
-                if is_csv:
-                    texts.append(
-                        f"\n\nSchema of the CSV file {file_name}:\n<schema>{dtypes_str}</schema>"
-                    )
-                else:
-                    texts.append(
-                        f"\n\nSchema of the Excel file {file_name}:\n<schema>{dtypes_str}</schema>"
-                    )
+                file_type = "CSV" if is_csv else "Excel"
+                read_cmd = "read_csv" if is_csv else "read_excel"
+
+                texts.append(
+                    f"\n\nInformation for the {file_type} file `{file_name}` (obtained by running `df = pd.{read_cmd}(\"{file_name}\")`):\n"
+                    f"- Columns: {df.columns.tolist()}\n"
+                    f"- Dtypes:\n<schema>{dtypes_str}</schema>\n"
+                    f"- Preview (first 5 rows):\n<preview>\n{head_str}\n</preview>"
+                )
 
     ret_value = [{"text": "\n".join(texts)}]
     return ret_value

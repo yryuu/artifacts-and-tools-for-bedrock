@@ -1,4 +1,5 @@
 import os
+import re
 import json
 import boto3
 import random
@@ -40,6 +41,10 @@ if TOOL_CODE_INTERPRETER:
     tool_config.append(converse_tools.code_interpreter)
 if TOOL_WEB_SEARCH:
     tool_config.append(converse_tools.web_search)
+
+# Always enable get_skill if available
+if hasattr(converse_tools, "get_skill"):
+    tool_config.append(converse_tools.get_skill)
 
 
 def handle_message(logger, connection_id, user_id, body):
@@ -125,9 +130,14 @@ def converse_make_request_stream(
     tool_extra,
     files,
 ):
-    file_names = [os.path.basename(file["file_name"]) for file in files]
+    file_list = []
+    for f in files:
+        original = os.path.basename(f["file_name"])
+        sanitized = re.sub(r"[^\w.\-]", "_", original)
+        file_list.append({"original": original, "sanitized": sanitized})
+
     system = system_messages(
-        ARTIFACTS_ENABLED == "1", s3_client, user_id, session_id, file_names
+        ARTIFACTS_ENABLED == "1", s3_client, user_id, session_id, file_list
     )
 
     additional_params = {}
@@ -156,7 +166,7 @@ def converse_make_request_stream(
                 tool_use_extra = sender.send_tool_running_messages(executor)
                 tool_extra.update(tool_use_extra)
 
-                executor.execute(s3_client, file_names)
+                executor.execute(s3_client, file_list)
                 user_messages = executor.get_user_messages()
                 converse_messages.extend(user_messages)
 
